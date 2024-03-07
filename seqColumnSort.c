@@ -15,6 +15,9 @@ void printMatrix(int** matrix, int length, int width) {
     printf("\n");
 }
 
+/**
+ * 
+ */
 void transposeAndReshape(int** matrix, int len, int width) {
     // allocate temporary copy of the matrix
     int** temp = malloc(len * sizeof(int*));
@@ -52,6 +55,49 @@ void transposeAndReshape(int** matrix, int len, int width) {
     free(temp);
 }
 
+/**
+ * 
+ */
+void reshapeAndTranspose(int** matrix, int len, int width) {
+    // allocate temporary copy of the matrix
+    int** temp = malloc(len * sizeof(int*));
+
+    for (int i = 0; i < len; i++) {
+        temp[i] = malloc(width * sizeof(int));
+    } 
+
+    // copy over elements
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < width; j++)
+            temp[i][j] = matrix[i][j];
+    }
+
+    // similar operation here, but now the pointer that is going rowwise 
+    // will be the one copied in the matrix that is being iterated columwise
+    int* ptr = matrix[0];
+
+    for (int j = 0; j < width; j++) {
+        for (int i = 0; i < len; i++) {
+            temp[i][j] = *ptr;
+            ptr++;
+        }
+    }
+
+    // for some reason it is only working with temp and not matrix, 
+    // so just copy over
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < len; j++) {
+                matrix[i][j] = temp[i][j];
+        }
+    }
+    
+    // free up the extra memory we used
+    for (int i = 0; i < len; i++) {
+        free(temp[i]);
+    }
+    free(temp);
+}
+
 void swap(int* a, int* b) {
     int temp = *a;
     *a = *b;
@@ -59,6 +105,9 @@ void swap(int* a, int* b) {
 }
 
 
+/**
+ * 
+ */
 void sortColumns(int** matrix, int len, int width) {
     // performs bubble sort in a columnwise traversal
     for (int i = 0; i < width; i++) {
@@ -72,6 +121,9 @@ void sortColumns(int** matrix, int len, int width) {
     }
 }
 
+/**
+ * 
+ */
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
     int** temp = (int **) malloc (length * sizeof(int*));
@@ -85,17 +137,29 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     // step 1: sort all columns
     sortColumns(temp, length, width);
-    printf("Matrix after sorting columns:\n");
+    printf("Step 1: Matrix after sorting columns:\n");
     printMatrix(temp, length, width);
 
     // step 2: transpose and reshape
     transposeAndReshape(temp, length, width);
-    printf("Matrix after transposing and reshaping columns:\n");
+    printf("Step 2: Matrix after transposing and reshaping columns:\n");
     printMatrix(temp, length, width);
 
     // step 3: sort all columns
     sortColumns(temp, length, width);
-    printf("Matrix after sorting columns:\n");
+    printf("Step 3: Matrix after sorting columns:\n");
     printMatrix(temp, length, width);
+
+    // step 4: reshape and transpose
+    reshapeAndTranspose(temp, length, width);
+    printf("Step 4: Matrix after reshaping and transposing columns:\n");
+    printMatrix(temp, length, width);
+
+    // step 5: sort all columns
+    sortColumns(temp, length, width);
+    printf("Step 5: Matrix after sorting columns:\n");
+    printMatrix(temp, length, width);
+
+
 }
 
