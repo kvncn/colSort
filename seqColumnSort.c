@@ -127,45 +127,46 @@ void sortColumns(int** matrix, int len, int width) {
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
     int** temp = (int **) malloc (length * sizeof(int*));
-    
+
     // copy over the elements to the matrix
     for (int i = 0; i < length; i++)
         temp[i] = &(A[i * width]);
 
-    printf("Original Matrix:\n");
-    printMatrix(temp, length, width);
+    //printf("Original Matrix:\n");
+    //printMatrix(temp, length, width);
 
     // step 1: sort all columns
     sortColumns(temp, length, width);
-    printf("Step 1: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
+    //printf("Step 1: Matrix after sorting columns:\n");
+    //printMatrix(temp, length, width);
 
     // step 2: transpose and reshape
     transposeAndReshape(temp, length, width);
-    printf("Step 2: Matrix after transposing and reshaping columns:\n");
-    printMatrix(temp, length, width);
+    //printf("Step 2: Matrix after transposing and reshaping columns:\n");
+    //printMatrix(temp, length, width);
 
     // step 3: sort all columns
     sortColumns(temp, length, width);
-    printf("Step 3: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
+    //printf("Step 3: Matrix after sorting columns:\n");
+    //printMatrix(temp, length, width);
 
     // step 4: reshape and transpose
     reshapeAndTranspose(temp, length, width);
-    printf("Step 4: Matrix after reshaping and transposing columns:\n");
-    printMatrix(temp, length, width);
+    //printf("Step 4: Matrix after reshaping and transposing columns:\n");
+    //printMatrix(temp, length, width);
 
     // step 5: sort all columns
     sortColumns(temp, length, width);
-    printf("Step 5: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
+    //printf("Step 5: Matrix after sorting columns:\n");
+    //printMatrix(temp, length, width);
 
-    // copy over the stuff 
+    // use this to copy over everything 
+    transposeAndReshape(temp, length, width);
     int* ptr = &A[0];
-    for (int j = 0; j < width; j++) {
-        for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++) {
+        for (int j = 0; j < width; j++) {
             *ptr = temp[i][j];
-            ptr++; 
+            ptr++;
         }
     }
 
