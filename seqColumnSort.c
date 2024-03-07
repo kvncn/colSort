@@ -160,7 +160,7 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     //printf("Step 5: Matrix after sorting columns:\n");
     //printMatrix(temp, length, width);
 
-    // use this to copy over everything 
+    // use this to copy over everything back into A 
     transposeAndReshape(temp, length, width);
     int* ptr = &A[0];
     for (int i = 0; i < length; i++) {
@@ -168,7 +168,10 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
             *ptr = temp[i][j];
             ptr++;
         }
-    }
+    }   
+
+    // free up memory
+    free(temp);
 
 }
 
