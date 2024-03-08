@@ -1,19 +1,33 @@
-#include <stdio.h> // mostly for testing rn
+/**
+ * @author Kevin Cascais Nisterenko
+ * @date March 8th, 2024
+ * @class CSc 422, Spring 2024
+ * 
+ * Sequential program that performs columnSort on a given matrix. The function 
+ * for columnSort and its helpers are present, and it is to be used/called by 
+ * another program, which will pass a vector of integers and dimensions for the
+ * matrix that will have the algorithm performed on. 
+ */
+#include <stdio.h> // mostly for testing and print function
 #include <stdlib.h>
+#include <sys/time.h> 
 
 #include "columnSort.h"
 
 // ---- sorting
+
 void sortColumns(int** matrix, int len, int width);
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime);
 
 // ---- matrix transformations
+
 int** transpose(int** matrix, int len, int width);
 int** reshape(int** matrix, int len, int width);
 int** shiftDown(int** matrix, int len, int width);
 int** shiftUp(int** matrix, int len, int width);
 
 // ---- helpers
+
 void freeMatrix(int** matrix, int len, int width);
 int** copyMatrix(int** matrix, int len, int width);
 void printMatrix(int** matrix, int length, int width);
@@ -22,7 +36,16 @@ void swap(int* a, int* b);
 // ---- sorting functions
 
 /**
+ * Column Sort algorithm function. It takes in a matrix's dimensions and the vector
+ * with the integers in it, builds the matrix, performs all the steps of columnSort 
+ * and then repopulates the vector with the numbers in sorted order. It also 
+ * times the algorithm. 
  * 
+ * @param A, vector of integers to sort, and where the results are stored at the end
+ * @param numThreads, integer representing the numbr of threads, ignored here
+ * @param length, number of rows of the matrix
+ * @param width, number of cols of the matrix
+ * @param elapsedTime, double pointer where the time is stored
  */
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
@@ -37,53 +60,58 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
         }
     }
 
-    printf("Original Matrix:\n");
-    printMatrix(mat, length, width);
+    //printf("Original Matrix:\n");
+    //printMatrix(mat, length, width);
+
+    struct timeval start, stop;
+    gettimeofday(&start, NULL);
 
     // step 1: sort all columns
     sortColumns(mat, length, width);
-    printf("Step 1: Matrix after sorting columns:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 1: Matrix after sorting columns:\n");
+    //printMatrix(mat, length, width);
 
     // step 2: transpose and reshape
     mat = transpose(mat, length, width);
     mat = reshape(mat, length, width);
-    printf("Step 2: Matrix after transposing and reshaping columns:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 2: Matrix after transposing and reshaping columns:\n");
+    //printMatrix(mat, length, width);
 
     // step 3: sort all columns
     sortColumns(mat, length, width);
-    printf("Step 3: Matrix after sorting columns:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 3: Matrix after sorting columns:\n");
+    //printMatrix(mat, length, width);
 
     // step 4: reshape and transpose
     mat = reshape(mat, width, length);
     mat = transpose(mat, width, length);
-    printf("Step 4: Matrix after reshaping and transposing columns:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 4: Matrix after reshaping and transposing columns:\n");
+    //printMatrix(mat, length, width);
 
     // step 5: sort all columns
     sortColumns(mat, length, width);
-    printf("Step 5: Matrix after sorting columns:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 5: Matrix after sorting columns:\n");
+    //printMatrix(mat, length, width);
 
     // step 6: shift down the matrix
     mat = shiftDown(mat, length, width);
-    printf("Step 6: Matrix after shifting down:\n");
-    printMatrix(mat, length, width+1);
+    //printf("Step 6: Matrix after shifting down:\n");
+    //printMatrix(mat, length, width+1);
 
     // step 7: sort all columns
     sortColumns(mat, length, width+1);
-    printf("Step 7: Matrix after sorting columns:\n");
-    printMatrix(mat, length, width+1);
+    //printf("Step 7: Matrix after sorting columns:\n");
+    //printMatrix(mat, length, width+1);
 
     // step 8: shift up the matrix
     mat = shiftUp(mat, length, width);
-    printf("Step 8: Matrix after shifting down:\n");
-    printMatrix(mat, length, width);
+    //printf("Step 8: Matrix after shifting down:\n");
+    //printMatrix(mat, length, width);
+
+    gettimeofday(&stop, NULL);
+    *elapsedTime = ((stop.tv_sec - start.tv_sec) * 1000000+(stop.tv_usec-start.tv_usec))/1000000.0;
 
     // use this to copy over everything back into A 
-    //transpose(temp, length, width);
     int* ptr = &A[0];
     for (int j = 0; j < width; j++) {
         for (int i = 0; i < length; i++) {
@@ -92,13 +120,15 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
         }
     }   
 
-    // free up memory
     free(mat);
-
 }
 
 /**
+ * Sorts every column in a matrix, uses bublle sort to do so  
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
  */
 void sortColumns(int** matrix, int len, int width) {
     // performs bubble sort in a columnwise traversal
@@ -116,7 +146,12 @@ void sortColumns(int** matrix, int len, int width) {
 // ---- matrix transformations 
 
 /**
+ * Tranformation function to transpose the matrix.  
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ * @return shifted, 2d array of integers
  */
 int** transpose(int** matrix, int len, int width) {
     int** tr = malloc(width * sizeof(int*));
@@ -124,6 +159,8 @@ int** transpose(int** matrix, int len, int width) {
     for (int i = 0; i < width; i++)
         tr[i] = malloc(len * sizeof(int)); 
     
+    // transpose, what is a column of the original is a row of the 
+    // result
     for (int i = 0; i < len; i++)
         for (int j = 0; j < width; j++)
             tr[j][i] = matrix[i][j];
@@ -135,7 +172,13 @@ int** transpose(int** matrix, int len, int width) {
 }
 
 /**
+ * Tranformation function to reshape the given matrix to whatever dimensions
+ * was passed to it. 
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ * @return res, 2d array of integers
  */
 int** reshape(int** matrix, int len, int width) {
     int** res = malloc(len * sizeof(int*));
@@ -143,6 +186,9 @@ int** reshape(int** matrix, int len, int width) {
     for (int i = 0; i < len; i++)
         res[i] = malloc(width * sizeof(int)); 
 
+    // calculate the inidices by  circling around and wrapping so we can 
+    // traverse the columns of the matrix, what is a column for the new 
+    // one is used as a row base of the old and vice versa
     for (int i = 0; i < len * width; i++) {
         int row = i / width; 
         int col = i % width; 
@@ -155,7 +201,14 @@ int** reshape(int** matrix, int len, int width) {
 }
 
 /**
+ * Tranformation function to shift down the matrix for column sort, 
+ * it adds infinities to the edges of the matrix and adds one more col
+ * to it, which is then returned
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ * @return shifted, 2d array of integers
  */
 int** shiftDown(int** matrix, int len, int width) {
     int* temp = malloc(len * (width+1) * sizeof(int));
@@ -185,12 +238,14 @@ int** shiftDown(int** matrix, int len, int width) {
     }
 
     curr = 0;
-
+    
+    // allocate space for the shifted matrix
     int** shifted = malloc(len * sizeof(int*));
 
     for (int i = 0; i < len; i++)
         shifted[i] = malloc((width+1) * sizeof(int)); 
-
+    
+    // copy over the elements to the new matrix
     for (int j = 0; j < width + 1; j++) {
         for (int i = 0; i < len; i++) {
             shifted[i][j] = temp[curr];
@@ -205,7 +260,14 @@ int** shiftDown(int** matrix, int len, int width) {
 }
 
 /**
+ * Tranformation function to shift up the matrix for column sort, 
+ * it removes the infinities from the edges of the matrix and reshapes 
+ * it into a matrix with one less col, which is returned. 
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ * @return shifted, 2d array of integers
  */
 int** shiftUp(int** matrix, int len, int width) {
     int* temp = malloc(len * (width+1) * sizeof(int));
@@ -224,11 +286,13 @@ int** shiftUp(int** matrix, int len, int width) {
     // matrix, so we shift back up as we ignore the infinities/edges of the matrix
     curr = len / 2;
 
+    // allocate space for the new matrix
     int** shifted = malloc(len * sizeof(int*));
 
     for (int i = 0; i < len; i++)
         shifted[i] = malloc(width * sizeof(int)); 
 
+    // copy over the elements to the matrix
     for (int j = 0; j < width; j++) {
         for (int i = 0; i < len; i++) {
             shifted[i][j] = temp[curr];
@@ -240,8 +304,15 @@ int** shiftUp(int** matrix, int len, int width) {
 }
 
 // ---- helpers 
-void printMatrix(int** matrix, int length, int width) {
-    for (int i = 0; i < length; i++) {
+/**
+ * Helper function to print the matrix.
+ * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ */
+void printMatrix(int** matrix, int len, int width) {
+    for (int i = 0; i < len; i++) {
         printf("|");
         for (int j = 0; j < width; j++) {
             printf(" %4d ", matrix[i][j]);
@@ -252,7 +323,11 @@ void printMatrix(int** matrix, int length, int width) {
 }
 
 /**
+ * Helper function to free the matrix in memory.
  * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
  */
 void freeMatrix(int** matrix, int len, int width) { 
     for (int i = 0; i < len; i++)
@@ -262,7 +337,10 @@ void freeMatrix(int** matrix, int len, int width) {
 }
 
 /**
+ * Helper function to swap two integer variables. 
  * 
+ * @param a, pointer to integer a
+ * @param b, pointer to integer b
  */
 void swap(int* a, int* b) {
     int temp = *a;
