@@ -12,29 +12,115 @@
 #include <stdlib.h>
 #include <sys/time.h> 
 #include <pthread.h>
+#include <math.h>
 
 #include "columnSort.h"
+#include "columnSortHelper.h"
 
-// ---- sorting
+// ---- global variables
+int** matrix; 
+int rows;
+int cols;
+int threadCount;
+volatile int* arrive;
 
-void sortColumns(int** matrix, int len, int width);
-void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime);
+// ---- sorting functions
 
-// ---- matrix transformations
+void sortColumn(int i);
+void sortColumns(int width);
 
-int** transpose(int** matrix, int len, int width);
-int** reshape(int** matrix, int len, int width);
-int** shiftDown(int** matrix, int len, int width);
-int** shiftUp(int** matrix, int len, int width);
+// ---- thread organization
+
+void* sorter(void *arg);
+void barrier(int i);
 
 // ---- helpers
 
-void freeMatrix(int** matrix, int len, int width);
-int** copyMatrix(int** matrix, int len, int width);
-void printMatrix(int** matrix, int length, int width);
-void swap(int* a, int* b);
+int log2(double x); 
+
+// ---- helpers
+
+/**
+ * 
+ */
+int log2(double x) {
+    double logRes = log10(x) / log10(2); 
+    return (int) (ceil(logRes));
+}
+
+// ---- thread organization
+
+/**
+ * Barrier implementation for a single thread (represented by i). It is a
+ * dissemination barrier inspired by the class example we covered in lecture
+ * and in the slides.
+ * 
+ * @param i, inetgere representing current thread
+ */
+void barrier(int i) {
+    int waitFor;
+    for (int j = 1; j < log2(threadCount); j++) {
+        // spin if we are not supposed to be here yet
+        while (arrive[i] != 0);
+        arrive[i] = j;
+        waitFor = (int) (i + pow(2, j-1)) % threadCount;
+        // wait for our budy
+        while (arrive[waitFor] != j);
+        // reset
+        arrive[waitFor] = 0;
+    }
+}
+
+/**
+ * Worker that sorts a column of the matrix, it calls the sortColumn on the
+ * column it posesses and then it waits for the other threads.
+ * 
+ * @param arg, void pointer with the arguments for the function
+ * @return NULL, nothing is returned
+ */
+void* sorter(void *arg) {
+    int id = *((int *) arg);
+
+    // every thread sorts its column
+    sortColumn(id);
+
+    // now the threads have to wait until all sorting is done, so we use the
+    // barrier
+    barrier(id);
+
+    return NULL;
+}
 
 // ---- sorting functions
+
+/**
+ * Sorts a column in a matrix, uses bubble sort to do so. It uses the 
+ * global matrix so that it can work with the threads
+ * 
+ * @param i, integer representing the col to sort 
+ */
+void sortColumn(int i) {
+    // performs bubble sort in a single column
+        // here we are just doing bubble sort
+        for (int j = 0; j < rows - 1; j++) {
+            for (int k = 0; k < rows - j - 1; k++) {
+                if (matrix[k][i] > matrix[k + 1][i])
+                    swap(&matrix[k][i], &matrix[k + 1][i]);
+            }
+        }
+}
+
+/**
+ * Sorts every column in a matrix 
+ * 
+ * @param width, integer representing number of cols 
+ */
+void sortColumns(int width) {
+    // performs bubble sort in a columnwise traversal
+    for (int i = 0; i < width; i++) {
+        sorter((void*) &i);
+    }
+}
 
 /**
  * Column Sort algorithm function. It takes in a matrix's dimensions and the vector
@@ -43,17 +129,17 @@ void swap(int* a, int* b);
  * times the algorithm. 
  * 
  * @param A, vector of integers to sort, and where the results are stored at the end
- * @param numThreads, integer representing the numbr of threads, ignored here
+ * @param numThreads, integer representing the numbr of threads
  * @param length, number of rows of the matrix
  * @param width, number of cols of the matrix
  * @param elapsedTime, double pointer where the time is stored
  */
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
-    int** mat = malloc (length * sizeof(int*));
+    int** mat = (int**) malloc (length * sizeof(int*));
 
     for (int i = 0; i < length; i++)
-        mat[i] = malloc(width * sizeof(int));
+        mat[i] = (int*) malloc(width * sizeof(int));
      
     for (int i = 0; i < length; i++) {
         for (int j = 0; j < width; j++) {
@@ -61,51 +147,59 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
         }
     }
 
-    //printf("Original Matrix:\n");
-    //printMatrix(mat, length, width);
+    // allocate global variables for the threads
+    matrix = mat; 
+    rows = length;
+    cols = width; 
+    threadCount = numThreads;
+
+    arrive = (int*) calloc(threadCount, sizeof(int));
+
+    // printf("Original Matrix:\n");
+    // printMatrix(mat, length, width);
 
     struct timeval start, stop;
     gettimeofday(&start, NULL);
 
     // step 1: sort all columns
-    sortColumns(mat, length, width);
-    //printf("Step 1: Matrix after sorting columns:\n");
-    //printMatrix(mat, length, width);
+    sortColumns(width);
+    // printf("Step 1: Matrix after sorting columns:\n");
+    // printMatrix(matrix, length, width);
 
     // step 2: transpose and reshape
-    mat = transpose(mat, length, width);
-    mat = reshape(mat, length, width);
-    //printf("Step 2: Matrix after transposing and reshaping columns:\n");
-    //printMatrix(mat, length, width);
+    matrix = transpose(matrix, length, width);
+    matrix = reshape(matrix, length, width);
+    // printf("Step 2: Matrix after transposing and reshaping columns:\n");
+    // printMatrix(matrix, length, width);
 
     // step 3: sort all columns
-    sortColumns(mat, length, width);
+    sortColumns(width);
     //printf("Step 3: Matrix after sorting columns:\n");
     //printMatrix(mat, length, width);
 
     // step 4: reshape and transpose
-    mat = reshape(mat, width, length);
-    mat = transpose(mat, width, length);
+    matrix = reshape(matrix, width, length);
+    matrix = transpose(matrix, width, length);
     //printf("Step 4: Matrix after reshaping and transposing columns:\n");
     //printMatrix(mat, length, width);
 
     // step 5: sort all columns
-    sortColumns(mat, length, width);
+    sortColumns(width);
     //printf("Step 5: Matrix after sorting columns:\n");
     //printMatrix(mat, length, width);
 
     // step 6: shift down the matrix
-    mat = shiftDown(mat, length, width);
+    matrix = shiftDown(matrix, length, width);
     //printf("Step 6: Matrix after shifting down:\n");
     //printMatrix(mat, length, width+1);
 
     // step 7: sort all columns
-    sortColumns(mat, length, width+1);
+    sortColumns(width+1);
     //printf("Step 7: Matrix after sorting columns:\n");
     //printMatrix(mat, length, width+1);
 
     // step 8: shift up the matrix
-    mat = shiftUp(mat, length, width);
+    matrix = shiftUp(matrix, length, width);
     //printf("Step 8: Matrix after shifting down:\n");
     //printMatrix(mat, length, width);
 
@@ -116,236 +210,10 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     int* ptr = &A[0];
     for (int j = 0; j < width; j++) {
         for (int i = 0; i < length; i++) {
-            *ptr = mat[i][j];
+            *ptr = matrix[i][j];
             ptr++;
         }
     }   
 
     free(mat);
 }
-
-/**
- * Sorts every column in a matrix, uses bublle sort to do so  
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- */
-void sortColumns(int** matrix, int len, int width) {
-    // performs bubble sort in a columnwise traversal
-    for (int i = 0; i < width; i++) {
-        // here we are just doing bubble sort
-        for (int j = 0; j < len - 1; j++) {
-            for (int k = 0; k < len - j - 1; k++) {
-                if (matrix[k][i] > matrix[k + 1][i])
-                    swap(&matrix[k][i], &matrix[k + 1][i]);
-            }
-        }
-    }
-}
-
-// ---- matrix transformations 
-
-/**
- * Tranformation function to transpose the matrix.  
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- * @return shifted, 2d array of integers
- */
-int** transpose(int** matrix, int len, int width) {
-    int** tr = malloc(width * sizeof(int*));
-
-    for (int i = 0; i < width; i++)
-        tr[i] = malloc(len * sizeof(int)); 
-    
-    // transpose, what is a column of the original is a row of the 
-    // result
-    for (int i = 0; i < len; i++)
-        for (int j = 0; j < width; j++)
-            tr[j][i] = matrix[i][j];
-    
-    freeMatrix(matrix, len, width);
-
-    return tr; 
-
-}
-
-/**
- * Tranformation function to reshape the given matrix to whatever dimensions
- * was passed to it. 
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- * @return res, 2d array of integers
- */
-int** reshape(int** matrix, int len, int width) {
-    int** res = malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++)
-        res[i] = malloc(width * sizeof(int)); 
-
-    // calculate the inidices by  circling around and wrapping so we can 
-    // traverse the columns of the matrix, what is a column for the new 
-    // one is used as a row base of the old and vice versa
-    for (int i = 0; i < len * width; i++) {
-        int row = i / width; 
-        int col = i % width; 
-        res[row][col] = matrix[i / len][i % len];
-    }
-
-    freeMatrix(matrix, width, len);
-
-    return res;
-}
-
-/**
- * Tranformation function to shift down the matrix for column sort, 
- * it adds infinities to the edges of the matrix and adds one more col
- * to it, which is then returned
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- * @return shifted, 2d array of integers
- */
-int** shiftDown(int** matrix, int len, int width) {
-    int* temp = malloc(len * (width+1) * sizeof(int));
-
-    int curr = 0;
-
-    // set the first len/2 elements to -1 (negative infinity)
-    while (curr < len / 2){
-        temp[curr] = -1;
-        curr++;
-    }
-
-    // copy over middle, which is just our matrix colum-wise
-    for (int j = 0; j < width; j++) {
-        for (int i = 0; i < len; i++) {
-            temp[curr] = matrix[i][j];
-            curr++;
-        }
-    }
-
-    // set last len/2 elements as 1000 (infinity)
-    int i = 0;
-    while (i < len / 2) {
-        temp[curr] = 1000;
-        curr++;
-        i++;
-    }
-
-    curr = 0;
-    
-    // allocate space for the shifted matrix
-    int** shifted = malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++)
-        shifted[i] = malloc((width+1) * sizeof(int)); 
-    
-    // copy over the elements to the new matrix
-    for (int j = 0; j < width + 1; j++) {
-        for (int i = 0; i < len; i++) {
-            shifted[i][j] = temp[curr];
-            curr++;
-        }
-    }
-
-    free(matrix);
-    free(temp);
-
-    return shifted; 
-}
-
-/**
- * Tranformation function to shift up the matrix for column sort, 
- * it removes the infinities from the edges of the matrix and reshapes 
- * it into a matrix with one less col, which is returned. 
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- * @return shifted, 2d array of integers
- */
-int** shiftUp(int** matrix, int len, int width) {
-    int* temp = malloc(len * (width+1) * sizeof(int));
-
-    int curr = 0;
-
-    // copy matrix over into temp
-    for (int j = 0; j < width+1; j++) {
-        for (int i = 0; i < len; i++) {
-            temp[curr] = matrix[i][j];
-            curr++;
-        }
-    }
-
-    // now we skip the elements we do not care about while building our new 
-    // matrix, so we shift back up as we ignore the infinities/edges of the matrix
-    curr = len / 2;
-
-    // allocate space for the new matrix
-    int** shifted = malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++)
-        shifted[i] = malloc(width * sizeof(int)); 
-
-    // copy over the elements to the matrix
-    for (int j = 0; j < width; j++) {
-        for (int i = 0; i < len; i++) {
-            shifted[i][j] = temp[curr];
-            curr++;
-        }
-    }
-
-    return shifted;
-}
-
-// ---- helpers 
-/**
- * Helper function to print the matrix.
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- */
-void printMatrix(int** matrix, int len, int width) {
-    for (int i = 0; i < len; i++) {
-        printf("|");
-        for (int j = 0; j < width; j++) {
-            printf(" %4d ", matrix[i][j]);
-        }
-        printf("|\n");
-    }
-    printf("\n");
-}
-
-/**
- * Helper function to free the matrix in memory.
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- */
-void freeMatrix(int** matrix, int len, int width) { 
-    for (int i = 0; i < len; i++)
-        free(matrix[i]);
-    
-    free(matrix);
-}
-
-/**
- * Helper function to swap two integer variables. 
- * 
- * @param a, pointer to integer a
- * @param b, pointer to integer b
- */
-void swap(int* a, int* b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
-}
-

@@ -11,14 +11,6 @@
 
 // ---- sorting
 
-/**
- * Sorts every column in a matrix, uses bublle sort to do so  
- * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
- */
-void sortColumns(int** matrix, int len, int width);
 
 // ---- matrix transformations
 

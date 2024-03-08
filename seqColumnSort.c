@@ -16,6 +16,26 @@
 #include "columnSortHelper.h"
 
 /**
+ * Sorts every column in a matrix, uses bubble sort to do so  
+ * 
+ * @param matrix, 2d array of integers
+ * @param len, integer representing number of rows 
+ * @param width, integer representing number of cols 
+ */
+void sortColumns(int** matrix, int len, int width) {
+    // performs bubble sort in a columnwise traversal
+    for (int i = 0; i < width; i++) {
+        // here we are just doing bubble sort
+        for (int j = 0; j < len - 1; j++) {
+            for (int k = 0; k < len - j - 1; k++) {
+                if (matrix[k][i] > matrix[k + 1][i])
+                    swap(&matrix[k][i], &matrix[k + 1][i]);
+            }
+        }
+    }
+}
+
+/**
  * Column Sort algorithm function. It takes in a matrix's dimensions and the vector
  * with the integers in it, builds the matrix, performs all the steps of columnSort 
  * and then repopulates the vector with the numbers in sorted order. It also 
@@ -29,10 +49,10 @@
  */
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
-    int** mat = malloc (length * sizeof(int*));
+    int** mat = (int**) malloc (length * sizeof(int*));
 
     for (int i = 0; i < length; i++)
-        mat[i] = malloc(width * sizeof(int));
+        mat[i] = (int*) malloc(width * sizeof(int));
      
     for (int i = 0; i < length; i++) {
         for (int j = 0; j < width; j++) {
