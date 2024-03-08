@@ -10,6 +10,8 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 // ---- matrix transformations
 int** transpose(int** matrix, int len, int width);
 int** reshape(int** matrix, int len, int width);
+int** shiftDown(int** matrix, int len, int width);
+void shiftUp(int** matrix, int len, int width);
 
 // ---- helpers
 void freeMatrix(int** matrix, int len, int width);
@@ -65,8 +67,20 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     printf("Step 5: Matrix after sorting columns:\n");
     printMatrix(mat, length, width);
 
+    // step 6: shift down the matrix
+    mat = shiftDown(mat, length, width);
+    printf("Step 6: Matrix after shifting down:\n");
+    printMatrix(mat, length, width+1);
 
-    
+    // step 7: sort all columns
+    sortColumns(mat, length, width+1);
+    printf("Step 7: Matrix after sorting columns:\n");
+    printMatrix(mat, length, width+1);
+
+    // step 8: shift up the matrix
+    shiftDown(mat, length, width+1);
+    printf("Step 8: Matrix after shifting down:\n");
+    printMatrix(mat, length, width+1);
 
     // use this to copy over everything back into A 
     //transpose(temp, length, width);
@@ -138,6 +152,62 @@ int** reshape(int** matrix, int len, int width) {
     freeMatrix(matrix, width, len);
 
     return res;
+}
+
+/**
+ * 
+ */
+int** shiftDown(int** matrix, int len, int width) {
+    int* temp = malloc(len * (width+1) * sizeof(int));
+
+    int curr = 0;
+
+    // set the first len/2 elements to -1 (negative infinity)
+    while (curr < len / 2){
+        temp[curr] = -1;
+        curr++;
+    }
+
+    // copy over middle, which is just our matrix colum-wise
+    for (int j = 0; j < width; j++) {
+        for (int i = 0; i < len; i++) {
+            temp[curr] = matrix[i][j];
+            curr++;
+        }
+    }
+
+    // set last len/2 elements as 1000 (infinity)
+    int i = 0;
+    while (i < len / 2) {
+        temp[curr] = 1000;
+        curr++;
+        i++;
+    }
+
+    curr = 0;
+
+    int** shifted = malloc(len * sizeof(int*));
+
+    for (int i = 0; i < len; i++)
+        shifted[i] = malloc((width+1) * sizeof(int)); 
+
+    for (int j = 0; j < width + 1; j++) {
+        for (int i = 0; i < len; i++) {
+            shifted[i][j] = temp[curr];
+            curr++;
+        }
+    }
+
+    free(matrix);
+    free(temp);
+
+    return shifted; 
+}
+
+/**
+ * 
+ */
+void shiftUp(int** matrix, int len, int width) {
 
 }
 
