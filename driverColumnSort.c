@@ -63,21 +63,9 @@ int main(int argc, char *argv[]) {
     sortedArray[i] = inputArray[i];
   }
   bubbleSort(sortedArray, n);
-  printf("NUMS IN GIVEN ARRAY: ");
-  for (i = 0; i < n; i++) {
-    printf("%d, ", sortedArray[i]);
-  }
-  printf("\n");
-
 
   // this is the function you must implement
   columnSort(inputArray, numWorkers, r, s, &elapsedTime);
-
-   printf("NUMS IN OUTPT ARRAY: ");
-  for (i = 0; i < n; i++) {
-    printf("%d, ", inputArray[i]);
-  }
-  printf("\n");
 
   // just error checking here
   for (i = 0; i < n; i++) {
