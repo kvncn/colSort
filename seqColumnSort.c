@@ -3,158 +3,84 @@
 
 #include "columnSort.h"
 
-// ---- matrix transformations
-void transposeAndReshape(int** matrix, int len, int width);
-void reshapeAndTranspose(int** matrix, int len, int width);
-void shiftDown(int** matrix, int len, int width);
-void shiftUp(int** matrix, int len, int width);
-
 // ---- sorting
 void sortColumns(int** matrix, int len, int width);
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime);
 
+// ---- matrix transformations
+int** transpose(int** matrix, int len, int width);
+int** reshape(int** matrix, int len, int width);
 
 // ---- helpers
+void freeMatrix(int** matrix, int len, int width);
 int** copyMatrix(int** matrix, int len, int width);
 void printMatrix(int** matrix, int length, int width);
 void swap(int* a, int* b);
 
-void printMatrix(int** matrix, int length, int width) {
+// ---- sorting functions
+
+/**
+ * 
+ */
+void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
+    // allocate matrix
+    int** mat = malloc (length * sizeof(int*));
+
+    for (int i = 0; i < length; i++)
+        mat[i] = malloc(width * sizeof(int));
+     
     for (int i = 0; i < length; i++) {
-        printf("|");
         for (int j = 0; j < width; j++) {
-            printf(" %4d ", matrix[i][j]);
+            mat[i][j] = A[i * width + j];
         }
-        printf("|\n");
-    }
-    printf("\n");
-}
-
-/**
- * 
- */
-int** copyMatrix(int** matrix, int len, int width) {
-    // allocate temporary copy of the matrix
-    int** temp = malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++) {
-        temp[i] = malloc(width * sizeof(int));
-    } 
-
-    // copy over elements
-    for (int i = 0; i < len; i++) {
-        for (int j = 0; j < width; j++)
-            temp[i][j] = matrix[i][j];
     }
 
-    return temp;
-}
+    printf("Original Matrix:\n");
+    printMatrix(mat, length, width);
 
-/**
- * 
- */
-void shiftDown(int** matrix, int len, int width) {
+    // step 1: sort all columns
+    sortColumns(mat, length, width);
+    printf("Step 1: Matrix after sorting columns:\n");
+    printMatrix(mat, length, width);
 
-    int* temp = malloc(len * (width+1) * sizeof(int));
+    // step 2: transpose and reshape
+    mat = transpose(mat, length, width);
+    mat = reshape(mat, length, width);
+    printf("Step 2: Matrix after transposing and reshaping columns:\n");
+    printMatrix(mat, length, width);
 
-    int curr = 0;
+    // step 3: sort all columns
+    sortColumns(mat, length, width);
+    printf("Step 3: Matrix after sorting columns:\n");
+    printMatrix(mat, length, width);
+
+    // step 4: reshape and transpose
+    mat = reshape(mat, width, length);
+    mat = transpose(mat, width, length);
+    printf("Step 4: Matrix after reshaping and transposing columns:\n");
+    printMatrix(mat, length, width);
+
+    // step 5: sort all columns
+    sortColumns(mat, length, width);
+    printf("Step 5: Matrix after sorting columns:\n");
+    printMatrix(mat, length, width);
+
+
     
-    while (curr < len / 2){
-        temp[curr] = -1;
-        curr++;
-    }
 
-    for (int i = 0; i < len; i++) {
+    // use this to copy over everything back into A 
+    //transpose(temp, length, width);
+    int* ptr = &A[0];
+    for (int i = 0; i < length; i++) {
         for (int j = 0; j < width; j++) {
-            temp[curr] = matrix[i][j];
-            curr++;
-        }
-    }
-
-    int i = 0;
-    while (i < len / 2) {
-        temp[curr] = 1000;
-        curr++;
-        i++;
-    }
-
-    for (int i = 0; i < len; i++)
-        matrix[i] = realloc(matrix[i], (width+1) * sizeof(int));
-
-    for (int i = 0; i < len; i++) {
-        for (int j = 0; j < width + 1; j++) {
-            matrix[i][j] = temp[i * (width+1) + j];
-        }
-    }
-
-
-}
-
-/**
- * 
- */
-void transposeAndReshape(int** matrix, int len, int width) {
-    int** temp = copyMatrix(matrix, len, width);
-    
-    // this takes care of the transpose and reshape, because
-    // we want to iterate columnwise and then put into a 
-    // sequential (i.e.) rowwise order in the final result
-    int* ptr = matrix[0]; 
-
-    // iterate columwise 
-    for (int j = 0; j < width; j++) {
-        // for every element, we jump row while keeping the column fixed
-        // then we increment our pointer by one, so we actually iterate 
-        // rowwise 
-        for (int i = 0; i < len; i++) {
-            *ptr = temp[i][j]; 
+            *ptr = mat[i][j];
             ptr++;
         }
-    }
+    }   
 
-    // free up the extra memory we used
-    for (int i = 0; i < len; i++) {
-        free(temp[i]);
-    }
-    free(temp);
-}
+    // free up memory
+    free(mat);
 
-/**
- * 
- */
-void reshapeAndTranspose(int** matrix, int len, int width) {
-    int** temp = copyMatrix(matrix, len, width);
-
-    // similar operation here, but now the pointer that is going rowwise 
-    // will be the one copied in the matrix that is being iterated columwise
-    int* ptr = matrix[0];
-
-    for (int j = 0; j < width; j++) {
-        for (int i = 0; i < len; i++) {
-            temp[i][j] = *ptr;
-            ptr++;
-        }
-    }
-
-    // for some reason it is only working with temp and not matrix, 
-    // so just copy over
-    for (int i = 0; i < len; i++) {
-        for (int j = 0; j < len; j++) {
-            matrix[i][j] = temp[i][j];
-        }
-    }
-    
-    // free up the extra memory we used
-    for (int i = 0; i < len; i++) {
-        free(temp[i]);
-    }
-    free(temp);
-}
-
-void swap(int* a, int* b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
 }
 
 /**
@@ -173,67 +99,97 @@ void sortColumns(int** matrix, int len, int width) {
     }
 }
 
+// ---- matrix transformations 
+
 /**
  * 
  */
-void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
-    // allocate matrix
-    int** temp = malloc (length * sizeof(int*));
+int** transpose(int** matrix, int len, int width) {
+    int** tr = malloc(width * sizeof(int*));
 
-    for (int i = 0; i < length; i++)
-        temp[i] = malloc(width * sizeof(int));
-     
-    for (int i = 0; i < length; i++) {
-        for (int j = 0; j < width; j++) {
-            temp[i][j] = A[i * width + j];
-        }
+    for (int i = 0; i < width; i++)
+        tr[i] = malloc(len * sizeof(int)); 
+    
+    for (int i = 0; i < len; i++)
+        for (int j = 0; j < width; j++)
+            tr[j][i] = matrix[i][j];
+    
+    freeMatrix(matrix, len, width);
+
+    return tr; 
+
+}
+
+/**
+ * 
+ */
+int** reshape(int** matrix, int len, int width) {
+    int** res = malloc(len * sizeof(int*));
+
+    for (int i = 0; i < len; i++)
+        res[i] = malloc(width * sizeof(int)); 
+
+    for (int i = 0; i < len * width; i++) {
+        int row = i / width; 
+        int col = i % width; 
+        res[row][col] = matrix[i / len][i % len];
     }
 
-    printf("Original Matrix:\n");
-    printMatrix(temp, length, width);
+    freeMatrix(matrix, width, len);
 
-    // step 1: sort all columns
-    sortColumns(temp, length, width);
-    printf("Step 1: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
+    return res;
 
-    // step 2: transpose and reshape
-    transposeAndReshape(temp, length, width);
-    printf("Step 2: Matrix after transposing and reshaping columns:\n");
-    printMatrix(temp, length, width);
+}
 
-    // step 3: sort all columns
-    sortColumns(temp, length, width);
-    printf("Step 3: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
 
-    // step 4: reshape and transpose
-    reshapeAndTranspose(temp, length, width);
-    printf("Step 4: Matrix after reshaping and transposing columns:\n");
-    printMatrix(temp, length, width);
-
-    // step 5: sort all columns
-    sortColumns(temp, length, width);
-    printf("Step 5: Matrix after sorting columns:\n");
-    printMatrix(temp, length, width);
-
-    // step 6: shift down
-    shiftDown(temp, length, width);
-    printf("Step 6: Matrix after shifting down:\n");
-    printMatrix(temp, length, width+1);
-
-    // use this to copy over everything back into A 
-    transposeAndReshape(temp, length, width);
-    int* ptr = &A[0];
+// ---- helpers 
+void printMatrix(int** matrix, int length, int width) {
     for (int i = 0; i < length; i++) {
+        printf("|");
         for (int j = 0; j < width; j++) {
-            *ptr = temp[i][j];
-            ptr++;
+            printf(" %4d ", matrix[i][j]);
         }
-    }   
+        printf("|\n");
+    }
+    printf("\n");
+}
 
-    // free up memory
-    free(temp);
+/**
+ * 
+ */
+void freeMatrix(int** matrix, int len, int width) { 
+    for (int i = 0; i < len; i++)
+        free(matrix[i]);
+    
+    free(matrix);
+}
 
+/**
+ * 
+ */
+// int** copyMatrix(int** matrix, int len, int width) {
+//     // allocate temporary copy of the matrix
+//     int** temp = malloc(len * sizeof(int*));
+
+//     for (int i = 0; i < len; i++) {
+//         temp[i] = malloc(width * sizeof(int));
+//     } 
+
+//     // copy over elements
+//     for (int i = 0; i < len; i++) {
+//         for (int j = 0; j < width; j++)
+//             temp[i][j] = matrix[i][j];
+//     }
+
+//     return temp;
+// }
+
+/**
+ * 
+ */
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
