@@ -81,9 +81,9 @@ void shiftDown(int** matrix, int len, int width) {
     for (int i = 0; i < len; i++)
         matrix[i] = realloc(matrix[i], (width+1) * sizeof(int));
 
-    for (int j = 0; j < width+1; j++) {
-        for (int i = 0; i < len; i++) {
-            matrix[j][i] = temp[i * (width+1) + j];
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < width + 1; j++) {
+            matrix[i][j] = temp[i * (width+1) + j];
         }
     }
 
