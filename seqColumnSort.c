@@ -183,8 +183,8 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     for (int i = 0; i < length; i++)
         temp[i] = malloc(width * sizeof(int));
      
-    for (int j = 0; j < width; j++) {
-        for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++) {
+        for (int j = 0; j < width; j++) {
             temp[i][j] = A[i * width + j];
         }
     }
