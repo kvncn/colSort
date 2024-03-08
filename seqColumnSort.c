@@ -11,7 +11,7 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 int** transpose(int** matrix, int len, int width);
 int** reshape(int** matrix, int len, int width);
 int** shiftDown(int** matrix, int len, int width);
-void shiftUp(int** matrix, int len, int width);
+int** shiftUp(int** matrix, int len, int width);
 
 // ---- helpers
 void freeMatrix(int** matrix, int len, int width);
@@ -78,15 +78,15 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     printMatrix(mat, length, width+1);
 
     // step 8: shift up the matrix
-    shiftDown(mat, length, width+1);
+    mat = shiftUp(mat, length, width);
     printf("Step 8: Matrix after shifting down:\n");
-    printMatrix(mat, length, width+1);
+    printMatrix(mat, length, width);
 
     // use this to copy over everything back into A 
     //transpose(temp, length, width);
     int* ptr = &A[0];
-    for (int i = 0; i < length; i++) {
-        for (int j = 0; j < width; j++) {
+    for (int j = 0; j < width; j++) {
+        for (int i = 0; i < length; i++) {
             *ptr = mat[i][j];
             ptr++;
         }
@@ -207,10 +207,37 @@ int** shiftDown(int** matrix, int len, int width) {
 /**
  * 
  */
-void shiftUp(int** matrix, int len, int width) {
+int** shiftUp(int** matrix, int len, int width) {
+    int* temp = malloc(len * (width+1) * sizeof(int));
 
+    int curr = 0;
+
+    // copy matrix over into temp
+    for (int j = 0; j < width+1; j++) {
+        for (int i = 0; i < len; i++) {
+            temp[curr] = matrix[i][j];
+            curr++;
+        }
+    }
+
+    // now we skip the elements we do not care about while building our new 
+    // matrix, so we shift back up as we ignore the infinities/edges of the matrix
+    curr = len / 2;
+
+    int** shifted = malloc(len * sizeof(int*));
+
+    for (int i = 0; i < len; i++)
+        shifted[i] = malloc(width * sizeof(int)); 
+
+    for (int j = 0; j < width; j++) {
+        for (int i = 0; i < len; i++) {
+            shifted[i][j] = temp[curr];
+            curr++;
+        }
+    }
+
+    return shifted;
 }
-
 
 // ---- helpers 
 void printMatrix(int** matrix, int length, int width) {
@@ -233,26 +260,6 @@ void freeMatrix(int** matrix, int len, int width) {
     
     free(matrix);
 }
-
-/**
- * 
- */
-// int** copyMatrix(int** matrix, int len, int width) {
-//     // allocate temporary copy of the matrix
-//     int** temp = malloc(len * sizeof(int*));
-
-//     for (int i = 0; i < len; i++) {
-//         temp[i] = malloc(width * sizeof(int));
-//     } 
-
-//     // copy over elements
-//     for (int i = 0; i < len; i++) {
-//         for (int j = 0; j < width; j++)
-//             temp[i][j] = matrix[i][j];
-//     }
-
-//     return temp;
-// }
 
 /**
  * 
