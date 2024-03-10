@@ -74,6 +74,8 @@ void* sorter(void *arg) {
     int idx = id;
 
     id = id * threadCount;
+    if (id > cols)
+        return NULL;
 
     for (int i = 0; i < threadCount; i++) {
         printf("thread i: %d is gonna sort cols: %d\n", idx, id);
@@ -227,8 +229,8 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     // step 6: shift down the matrix
     matrix = shiftDown(matrix, length, width);
-    //printf("Step 6: Matrix after shifting down:\n");
-    //printMatrix(matrix, length, width+1);
+    printf("Step 6: Matrix after shifting down:\n");
+    printMatrix(matrix, length, width+1);
 
     // step 7: sort all columns
     printf("7-----------\n");
@@ -247,8 +249,8 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     // fix up last col
     cols = width + 1;
     sorter((void*) &cols);
-    //printf("Step 7: Matrix after sorting columns:\n");
-    //printMatrix(matrix, length, width+1);
+    // printf("Step 7: Matrix after sorting columns:\n");
+    // printMatrix(matrix, length, width+1);
 
     // step 8: shift up the matrix
     matrix = shiftUp(matrix, length, width);
