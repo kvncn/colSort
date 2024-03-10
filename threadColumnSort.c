@@ -23,6 +23,7 @@ int rows;
 int cols;
 int threadCount;
 volatile int* arrive;
+int active; 
 
 // ---- sorting functions
 
@@ -45,13 +46,17 @@ void barrier(int i);
  */
 void barrier(int i) {
     int waitFor;
-    for (int j = 1; j < (int) ceil(log2(threadCount)); j++) {
+    for (int j = 1; j <= (int) ceil(log2(threadCount)); j++) {
         // spin if we are not supposed to be here yet
-        while (arrive[i] != 0);
+        while (arrive[i] != 0) {
+            printf("waiting for my arrive to be 0\n");
+        }
         arrive[i] = j;
         waitFor = (int) (i + pow(2, j-1)) % threadCount;
         // wait for our budy
-        while (arrive[waitFor] != j);
+        while (arrive[waitFor] != j) {
+            printf("waiting for my budy to be ready\n");
+        }
         // reset
         arrive[waitFor] = 0;
     }
@@ -66,10 +71,15 @@ void barrier(int i) {
  */
 void* sorter(void *arg) {
     int id = *((int *) arg);
+    int idx = id;
 
-    // every thread sorts its column
-    sortColumn(id%cols);
- 
+    id = id * threadCount;
+
+    for (int i = 0; i < threadCount; i++) {
+        printf("thread i: %d is gonna sort cols: %d\n", idx, id);
+        sortColumn(id);
+        id++;
+    }
 
     return NULL;
 }
@@ -99,10 +109,8 @@ void sortColumn(int i) {
  * @param width, integer representing number of cols 
  */
 void sortColumns(int width) {
-    // performs bubble sort in a columnwise traversal
-    for (int i = 0; i < width; i++) {
+    for (int i = 0; i < width; i++)
         sorter((void*) &i);
-    }
 }
 
 /**
@@ -138,6 +146,7 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     rows = length;
     cols = width; 
     threadCount = numThreads;
+    active = 1;
 
     arrive = (int*) calloc(threadCount, sizeof(int));
 
@@ -149,73 +158,106 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     threads = (pthread_t *) malloc(numThreads * sizeof(pthread_t));
     params = (int *) malloc(numThreads * sizeof(int));
 
-    // Create threads 
-    // it is okay if they start because the first step is sorting the 
-    // columns anyways
+    //printf("Original Matrix:\n");
+    //printMatrix(matrix, length, width);
+
+    // step 1: sort all columns
+    printf("1-----------\n");
     for (int i = 0; i < numThreads; i++) {
         params[i] = i;
         pthread_create(&threads[i], NULL, sorter, (void *)(&params[i]));
     }
 
-    printf("Original Matrix:\n");
-    printMatrix(mat, length, width);
+    //sortColumns(width);
 
-    // step 1: sort all columns
-    sortColumns(width);
-    printf("-----------------\n");
     for (int i = 0; i < numThreads; i++)
-        barrier(i);
-    printf("Step 1: Matrix after sorting columns:\n");
-    printMatrix(matrix, length, width);
+        pthread_join(threads[i], NULL);
+
+    printf("1-----------\n");
+
+    // stop threads from trying to work
+
+   //printf("Step 1: Matrix after sorting columns:\n");
+    //printMatrix(matrix, length, width);
 
     // step 2: transpose and reshape
     matrix = transpose(matrix, length, width);
     matrix = reshape(matrix, length, width);
-    // printf("Step 2: Matrix after transposing and reshaping columns:\n");
-    // printMatrix(matrix, length, width);
+    //printf("Step 2: Matrix after transposing and reshaping columns:\n");
+    //printMatrix(matrix, length, width);
 
     // step 3: sort all columns
-    sortColumns(width);
+    printf("3-----------\n");
+    for (int i = 0; i < numThreads; i++) {
+        params[i] = i;
+        pthread_create(&threads[i], NULL, sorter, (void *)(&params[i]));
+    }
+
+    //sortColumns(width);
+
     for (int i = 0; i < numThreads; i++)
-        barrier(i);
-    // printf("Step 3: Matrix after sorting columns:\n");
-    // printMatrix(mat, length, width);
+        pthread_join(threads[i], NULL);
+    
+    printf("3-----------\n");
+    //printf("Step 3: Matrix after sorting columns:\n");
+    //printMatrix(matrix, length, width);
 
     // step 4: reshape and transpose
     matrix = reshape(matrix, width, length);
     matrix = transpose(matrix, width, length);
-    // printf("Step 4: Matrix after reshaping and transposing columns:\n");
-    // printMatrix(mat, length, width);
+    //printf("Step 4: Matrix after reshaping and transposing columns:\n");
+    //printMatrix(matrix, length, width);
+
 
     // step 5: sort all columns
-    sortColumns(width);
+    printf("5-----------\n");
+    for (int i = 0; i < numThreads; i++) {
+        params[i] = i;
+        pthread_create(&threads[i], NULL, sorter, (void *)(&params[i]));
+    }
+
+    //sortColumns(width);
+
     for (int i = 0; i < numThreads; i++)
-        barrier(i);
-    // printf("Step 5: Matrix after sorting columns:\n");
-    // printMatrix(mat, length, width);
+        pthread_join(threads[i], NULL);
+    
+    printf("5-----------\n");
+    //printf("Step 5: Matrix after sorting columns:\n");
+    //printMatrix(matrix, length, width);
 
     // step 6: shift down the matrix
     matrix = shiftDown(matrix, length, width);
-    // printf("Step 6: Matrix after shifting down:\n");
-    // printMatrix(mat, length, width+1);
+    //printf("Step 6: Matrix after shifting down:\n");
+    //printMatrix(matrix, length, width+1);
 
     // step 7: sort all columns
-    sortColumns(width+1);
-    for (int i = 0; i < numThreads; i++)
-        barrier(i);
-    // printf("Step 7: Matrix after sorting columns:\n");
-    // printMatrix(mat, length, width+1);
+    printf("7-----------\n");
     for (int i = 0; i < numThreads; i++) {
-        pthread_join(threads[i], NULL);
+        params[i] = i;
+        printf("i: %d\n", i);
+        pthread_create(&threads[i], NULL, sorter, (void *)(&params[i]));
     }
 
-    free(params);
-    free(threads);
+    //sortColumns(width);
+
+    for (int i = 0; i < numThreads; i++)
+        pthread_join(threads[i], NULL);
+    
+    printf("7-----------\n");
+    // fix up last col
+    cols = width + 1;
+    sorter((void*) &cols);
+    //printf("Step 7: Matrix after sorting columns:\n");
+    //printMatrix(matrix, length, width+1);
 
     // step 8: shift up the matrix
     matrix = shiftUp(matrix, length, width);
+    cols = width - 1;
     // printf("Step 8: Matrix after shifting down:\n");
-    // printMatrix(mat, length, width);
+    // printMatrix(matrix, length, width);
+
+    free(threads);
+    free(params);
 
     gettimeofday(&stop, NULL);
     *elapsedTime = ((stop.tv_sec - start.tv_sec) * 1000000+(stop.tv_usec-start.tv_usec))/1000000.0;
@@ -229,5 +271,5 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
         }
     }   
 
-    free(mat);
+    free(matrix);
 }
