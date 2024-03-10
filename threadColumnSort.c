@@ -48,15 +48,11 @@ void barrier(int i) {
     int waitFor;
     for (int j = 1; j <= (int) ceil(log2(threadCount)); j++) {
         // spin if we are not supposed to be here yet
-        while (arrive[i] != 0) {
-            printf("waiting for my arrive to be 0\n");
-        }
+        while (arrive[i] != 0);
         arrive[i] = j;
         waitFor = (int) (i + pow(2, j-1)) % threadCount;
         // wait for our budy
-        while (arrive[waitFor] != j) {
-            printf("waiting for my budy to be ready\n");
-        }
+        while (arrive[waitFor] != j);
         // reset
         arrive[waitFor] = 0;
     }
@@ -85,6 +81,8 @@ void* sorter(void *arg) {
 
     for (int i = startCol; i <= endCol; i++) 
         sortColumn(i);
+    
+    barrier(id);
 
     return NULL;
 }
