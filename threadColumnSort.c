@@ -289,6 +289,9 @@ void barrier(int i) {
 void* sorter(void *arg) {
     int id = *((int *) arg);
 
+    // thread 0 will also be the coordinator, i.e. it will take care of
+    // the matrix transformations 
+
     int numCols = cols / threadCount;
     int startCol = id * numCols;
     int endCol;
@@ -305,9 +308,11 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 2: transpose and reshape
-    matrix = transpose(matrix, rows, cols);
+    if (id == 0)
+        matrix = transpose(matrix, rows, cols);
     barrier(id);
-    matrix = reshape(matrix, rows, cols);
+    if (id == 0)
+        matrix = reshape(matrix, rows, cols);
     barrier(id);
 
     // step 3: sort all columns
@@ -316,9 +321,11 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 4: reshape and transpose
-    matrix = reshape(matrix, cols, rows);
+    if (id == 0)
+        matrix = reshape(matrix, cols, rows);
     barrier(id);
-    matrix = transpose(matrix, cols, rows);
+    if (id == 0)
+        matrix = transpose(matrix, cols, rows);
     barrier(id);
 
     // step 5: sort all columns
@@ -327,7 +334,8 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 6: shift down the matrix
-    matrix = shiftDown(matrix, rows, cols);
+    if (id == 0)
+        matrix = shiftDown(matrix, rows, cols);
     barrier(id);
 
     // step 7: sort all columns
@@ -337,7 +345,8 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 8: shift up the matrix
-    matrix = shiftUp(matrix, rows, cols);
+    if (id == 0)
+        matrix = shiftUp(matrix, rows, cols);
     barrier(id);
 
     return NULL;
