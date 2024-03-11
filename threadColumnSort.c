@@ -100,7 +100,7 @@ int** reshape(int** matrix, int len, int width) {
         res[row][col] = matrix[i / len][i % len];
     }
 
-    freeMatrix(matrix, width, len);
+    //freeMatrix(matrix, width, len);
 
     return res;
 }
@@ -160,8 +160,8 @@ int** shiftDown(int** matrix, int len, int width) {
         }
     }
 
-    free(matrix);
-    free(temp);
+    //free(matrix);
+    //free(temp);
 
     return shifted; 
 }
@@ -215,15 +215,15 @@ int** shiftUp(int** matrix, int len, int width) {
 /**
  * Helper function to print the matrix.
  * 
- * @param matrix, 2d array of integers
+ * @param mat, 2d array of integers
  * @param len, integer representing number of rows 
  * @param width, integer representing number of cols 
  */
-void printMatrix(int** matrix, int len, int width) {
+void printMatrix(int** mat, int len, int width) {
     for (int i = 0; i < len; i++) {
         printf("|");
         for (int j = 0; j < width; j++) {
-            printf(" %4d ", matrix[i][j]);
+            printf(" %4d ", mat[i][j]);
         }
         printf("|\n");
     }
@@ -233,15 +233,15 @@ void printMatrix(int** matrix, int len, int width) {
 /**
  * Helper function to free the matrix in memory.
  * 
- * @param matrix, 2d array of integers
+ * @param mat, 2d array of integers
  * @param len, integer representing number of rows 
  * @param width, integer representing number of cols 
  */
-void freeMatrix(int** matrix, int len, int width) { 
+void freeMatrix(int** mat, int len, int width) { 
     for (int i = 0; i < len; i++)
-        free(matrix[i]);
+        free(mat[i]);
     
-    free(matrix);
+    free(mat);
 }
 
 /**
@@ -306,6 +306,7 @@ void* sorter(void *arg) {
 
     // step 2: transpose and reshape
     matrix = transpose(matrix, rows, cols);
+    barrier(id);
     matrix = reshape(matrix, rows, cols);
     barrier(id);
 
@@ -316,6 +317,7 @@ void* sorter(void *arg) {
 
     // step 4: reshape and transpose
     matrix = reshape(matrix, cols, rows);
+    barrier(id);
     matrix = transpose(matrix, cols, rows);
     barrier(id);
 
