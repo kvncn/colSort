@@ -34,7 +34,7 @@ void swap(int* a, int* b);
  * @param matrix, 2d array of integers
  * @param len, integer representing number of rows 
  * @param width, integer representing number of cols 
- * @return shifted, 2d array of integers
+ * @return tr, 2d array of integers
  */
 int** transpose(int** matrix, int len, int width) {
     int** tr = (int**) malloc(width * sizeof(int*));
