@@ -70,7 +70,7 @@ int** transpose(int** matrix, int len, int width) {
         for (int j = 0; j < width; j++)
             tr[j][i] = matrix[i][j];
     
-    freeMatrix(matrix, len, width);
+    //freeMatrix(matrix, len, width);
 
     return tr; 
 
@@ -376,14 +376,14 @@ void sortColumn(int i) {
  */
 void columnSort(int *A, int numThreads, int length, int width, double *elapsedTime) {
     // allocate matrix
-    int** mat = (int**) malloc (length * sizeof(int*));
+    matrix = (int**) malloc (length * sizeof(int*));
 
     for (int i = 0; i < length; i++)
-        mat[i] = (int*) malloc(width * sizeof(int));
+        matrix[i] = (int*) malloc(width * sizeof(int));
      
     for (int i = 0; i < length; i++) {
         for (int j = 0; j < width; j++) {
-            mat[i][j] = A[i * width + j];
+            matrix[i][j] = A[i * width + j];
         }
     }
 
@@ -391,7 +391,6 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     gettimeofday(&start, NULL);
 
     // allocate global variables for the threads
-    matrix = mat; 
     rows = length;
     cols = width; 
     threadCount = numThreads;
