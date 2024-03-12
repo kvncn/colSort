@@ -404,6 +404,7 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     struct timeval start, stop;
     gettimeofday(&start, NULL);
+    
     // allocate transpose and reverse
     tr = (int**) malloc (length * sizeof(int*));
 
