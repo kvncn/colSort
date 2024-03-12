@@ -18,6 +18,9 @@
 
 // ---- global variables
 int** matrix; 
+int** tr;
+int** res;
+
 int rows;
 int cols;
 int threadCount;
@@ -26,8 +29,8 @@ int active;
 
 // ---- matrix transformations
 
-int** transpose(int** matrix, int len, int width);
-int** reverseTranspose(int** matrix, int len, int width);
+void transpose(int start, int end);
+void reverseTranspose(int threadId, int start, int end);
 int** shiftDown(int** matrix, int len, int width);
 int** shiftUp(int** matrix, int len, int width);
 
@@ -54,70 +57,49 @@ void barrier(int i);
  * Tranformation function to transpose the matrix and reshape it to the 
  * original dimensions.
  * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
  * @return tr, 2d array of integers
  */
-int** transpose(int** matrix, int len, int width) {
-    int** tr = (int**) malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++)
-        tr[i] = (int*) malloc(width * sizeof(int)); 
-    
-    int row = 0;
+void transpose(int start, int end) {
+    int row = (rows / threadCount) * start;
     int col = 0;
     
     // transpose, what is a column of the original is a row of the 
     // result
-    for (int j = 0; j < width; j++)
-        for (int i = 0; i < len; i++) {
+    for (int j = start; j <= end; j++)
+        for (int i = 0; i < rows; i++) {
             tr[row][col] = matrix[i][j];
-            col++;
-            if (col == width) {
+            col++; 
+            if (col == cols) {
                 col = 0;
                 row++;
             } 
         }
-    
-    freeMatrix(matrix, len, width);
-
-    return tr;
 }
 
 /**
  * Tranformation function to reverse the transpose of the matrix.  
  * 
- * @param matrix, 2d array of integers
- * @param len, integer representing number of rows 
- * @param width, integer representing number of cols 
  * @return res, 2d array of integers
  */
-int** reverseTranspose(int** matrix, int len, int width) {
-    int** res = (int**) malloc(len * sizeof(int*));
-
-    for (int i = 0; i < len; i++)
-        res[i] = (int*) malloc(width * sizeof(int)); 
-    
+void reverseTranspose(int threadId, int start, int end) {
+    start = (rows / threadCount) * start;
+    end = start + (rows / threadCount);
     int row = 0;
-    int col = 0;
+    int col = threadId;
     
     // untranspose, what is a column of the original is a row of the 
     // result
-    for (int i = 0; i < len; i++)
-        for (int j = 0; j < width; j++) {
+    for (int i = start; i < end; i++) {
+        for (int j = 0; j < cols; j++) {
             res[row][col] = matrix[i][j];
             row++;
-            if (row == len) {
+            if (row == rows) {
                 row = 0;
-                col++;
             } 
         }
-    
-    freeMatrix(matrix, len, width);
-
-    return res; 
+    }
 }
+
 /**
  * Tranformation function to shift down the matrix for column sort, 
  * it adds infinities to the edges of the matrix and adds one more col
@@ -321,8 +303,9 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 2: transpose and reshape
-    if (id == 0)
-        matrix = transpose(matrix, rows, cols);
+    transpose(startCol, endCol);
+    barrier(id);
+    matrix = tr;
     barrier(id);
 
     // step 3: sort all columns
@@ -331,8 +314,9 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 4: reshape and transpose
-    if (id == 0)
-        matrix = reverseTranspose(matrix, rows, cols);
+    reverseTranspose(id, startCol, endCol);
+    barrier(id);
+    matrix = res;
     barrier(id);
 
     // step 5: sort all columns
@@ -405,6 +389,17 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     struct timeval start, stop;
     gettimeofday(&start, NULL);
+    // allocate transpose and reverse
+    tr = (int**) malloc (length * sizeof(int*));
+
+    for (int i = 0; i < length; i++)
+        tr[i] = (int*) malloc(width * sizeof(int));
+
+    res = (int**) malloc (length * sizeof(int*));
+
+    for (int i = 0; i < length; i++)
+        res[i] = (int*) malloc(width * sizeof(int));
+ 
 
     // allocate global variables for the threads
     rows = length;

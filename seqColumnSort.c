@@ -298,17 +298,17 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     // step 1: sort all columns
     sortColumns(mat, length, width);
-    printMatrix(mat, length, width);
 
     // step 2: transpose and reshape
     mat = transpose(mat, length, width);
-    printMatrix(mat, length, width);
 
     // step 3: sort all columns
     sortColumns(mat, length, width);
+    printMatrix(mat, length, width);
 
     // step 4: reshape and transpose
     mat = reverseTranspose(mat, length, width);
+    printMatrix(mat, length, width);
 
     // step 5: sort all columns
     sortColumns(mat, length, width);
