@@ -90,17 +90,18 @@ void transpose(int threadId, int start, int end) {
 void reverseTranspose(int threadId, int start, int end) {
     int col = start;
     int numRows = rows / threadCount;
-    start = numRows * threadId;
+    int startRow = numRows * threadId;
+    int endRow;
     if (threadId == threadCount - 1) {
-        end = rows - 1;
+        endRow = rows - 1;
     } else {
-        end = end + numRows - 1;
+        endRow = startRow + numRows - 1;
     }
     int row = 0;
     
     // untranspose, what is a column of the original is a row of the 
     // result
-    for (int i = start; i <= end; i++) {
+    for (int i = startRow; i <= endRow; i++) {
         for (int j = 0; j < cols; j++) {
             res[row][col] = matrix[i][j];
             row++;
@@ -344,7 +345,9 @@ void* sorter(void *arg) {
     // step 7: sort all columns
     for (int i = startCol; i <= endCol; i++) 
         sortColumn(i);
-    sortColumn(cols);
+    // first thread also takes care of extra col
+    if (id == 0)
+        sortColumn(cols);
     barrier(id);
 
     // step 8: shift up the matrix
