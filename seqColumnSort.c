@@ -16,7 +16,7 @@
 // ---- matrix transformations
 
 int** transpose(int** matrix, int len, int width);
-int** reshape(int** matrix, int len, int width);
+int** reverseTranspose(int** matrix, int len, int width);
 int** shiftDown(int** matrix, int len, int width);
 int** shiftUp(int** matrix, int len, int width);
 
@@ -29,7 +29,8 @@ void swap(int* a, int* b);
 // ---- matrix transformations
 
 /**
- * Tranformation function to transpose the matrix.  
+ * Tranformation function to transpose the matrix and reshape it to the 
+ * original dimensions.
  * 
  * @param matrix, 2d array of integers
  * @param len, integer representing number of rows 
@@ -37,50 +38,63 @@ void swap(int* a, int* b);
  * @return tr, 2d array of integers
  */
 int** transpose(int** matrix, int len, int width) {
-    int** tr = (int**) malloc(width * sizeof(int*));
+    int** tr = (int**) malloc(len * sizeof(int*));
 
-    for (int i = 0; i < width; i++)
-        tr[i] = (int*) malloc(len * sizeof(int)); 
+    for (int i = 0; i < len; i++)
+        tr[i] = (int*) malloc(width * sizeof(int)); 
+    
+    int row = 0;
+    int col = 0;
     
     // transpose, what is a column of the original is a row of the 
     // result
-    for (int i = 0; i < len; i++)
-        for (int j = 0; j < width; j++)
-            tr[j][i] = matrix[i][j];
+    for (int j = 0; j < width; j++)
+        for (int i = 0; i < len; i++) {
+            tr[row][col] = matrix[i][j];
+            col++;
+            if (col == width) {
+                col = 0;
+                row++;
+            } 
+        }
     
     freeMatrix(matrix, len, width);
 
-    return tr; 
-
+    return tr;
 }
 
 /**
- * Tranformation function to reshape the given matrix to whatever dimensions
- * was passed to it. 
+ * Tranformation function to reverse the transpose of the matrix.  
  * 
  * @param matrix, 2d array of integers
  * @param len, integer representing number of rows 
  * @param width, integer representing number of cols 
  * @return res, 2d array of integers
  */
-int** reshape(int** matrix, int len, int width) {
+int** reverseTranspose(int** matrix, int len, int width) {
     int** res = (int**) malloc(len * sizeof(int*));
 
     for (int i = 0; i < len; i++)
         res[i] = (int*) malloc(width * sizeof(int)); 
+    
+    int row = 0;
+    int col = 0;
+    
+    // untranspose, what is a column of the original is a row of the 
+    // result
+    for (int i = 0; i < len; i++)
+        for (int j = 0; j < width; j++) {
+            res[row][col] = matrix[i][j];
+            row++;
+            if (row == len) {
+                row = 0;
+                col++;
+            } 
+        }
+    
+    freeMatrix(matrix, len, width);
 
-    // calculate the inidices by  circling around and wrapping so we can 
-    // traverse the columns of the matrix, what is a column for the new 
-    // one is used as a row base of the old and vice versa
-    for (int i = 0; i < len * width; i++) {
-        int row = i / width; 
-        int col = i % width; 
-        res[row][col] = matrix[i / len][i % len];
-    }
-
-    freeMatrix(matrix, width, len);
-
-    return res;
+    return res; 
 }
 
 /**
@@ -284,17 +298,17 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
 
     // step 1: sort all columns
     sortColumns(mat, length, width);
+    printMatrix(mat, length, width);
 
     // step 2: transpose and reshape
     mat = transpose(mat, length, width);
-    mat = reshape(mat, length, width);
+    printMatrix(mat, length, width);
 
     // step 3: sort all columns
     sortColumns(mat, length, width);
 
     // step 4: reshape and transpose
-    mat = reshape(mat, width, length);
-    mat = transpose(mat, width, length);
+    mat = reverseTranspose(mat, length, width);
 
     // step 5: sort all columns
     sortColumns(mat, length, width);
