@@ -29,7 +29,7 @@ int active;
 
 // ---- matrix transformations
 
-void transpose(int start, int end);
+void transpose(int threadId, int start, int end);
 void reverseTranspose(int threadId, int start, int end);
 int** shiftDown(int** matrix, int len, int width);
 int** shiftUp(int** matrix, int len, int width);
@@ -57,16 +57,20 @@ void barrier(int i);
  * Tranformation function to transpose the matrix and reshape it to the 
  * original dimensions.
  * 
- * @return tr, 2d array of integers
+ * @param start, int representing start col
+ * @param end, int representing end col
  */
-void transpose(int start, int end) {
-    int row = (rows / threadCount) * start;
+void transpose(int threadId, int start, int end) {
+    int numRows = rows / threadCount;
+    
+    int row = threadId * numRows;
     int col = 0;
     
     // transpose, what is a column of the original is a row of the 
     // result
-    for (int j = start; j <= end; j++)
+    for (int j = start; j <= end; j++) {
         for (int i = 0; i < rows; i++) {
+            //printf("i: %d, j: %d, row: %d, col: %d\n", i, j, row, col);
             tr[row][col] = matrix[i][j];
             col++; 
             if (col == cols) {
@@ -74,27 +78,35 @@ void transpose(int start, int end) {
                 row++;
             } 
         }
+    }
 }
 
 /**
  * Tranformation function to reverse the transpose of the matrix.  
  * 
- * @return res, 2d array of integers
+ * @param start, int representing start col
+ * @param end, int representing end col
  */
 void reverseTranspose(int threadId, int start, int end) {
-    start = (rows / threadCount) * start;
-    end = start + (rows / threadCount);
+    int col = start;
+    int numRows = rows / threadCount;
+    start = numRows * threadId;
+    if (threadId == threadCount - 1) {
+        end = rows - 1;
+    } else {
+        end = end + numRows - 1;
+    }
     int row = 0;
-    int col = threadId;
     
     // untranspose, what is a column of the original is a row of the 
     // result
-    for (int i = start; i < end; i++) {
+    for (int i = start; i <= end; i++) {
         for (int j = 0; j < cols; j++) {
             res[row][col] = matrix[i][j];
             row++;
             if (row == rows) {
                 row = 0;
+                col++;
             } 
         }
     }
@@ -303,7 +315,7 @@ void* sorter(void *arg) {
     barrier(id);
 
     // step 2: transpose and reshape
-    transpose(startCol, endCol);
+    transpose(id, startCol, endCol);
     barrier(id);
     matrix = tr;
     barrier(id);
@@ -405,7 +417,6 @@ void columnSort(int *A, int numThreads, int length, int width, double *elapsedTi
     rows = length;
     cols = width; 
     threadCount = numThreads;
-    active = 1;
     arrive = (int*) calloc(threadCount, sizeof(int));
 
     // thread vars
